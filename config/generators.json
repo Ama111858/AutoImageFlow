@@ -1,0 +1,22 @@
+{
+    "generators": [
+        {
+            "id": "freegen_default",
+            "name": "FreeGen (Test Template)",
+            "type": "web",
+            "url": "https://freegen.app",
+            "selectors": {
+                "prompt_input": "#prompt",
+                "generate_btn": "#generateBtn",
+                "image_output": "#imageContainer",
+                "download_btn": ""
+            }
+        },
+        {
+            "id": "comfyui_local",
+            "name": "ComfyUI Local",
+            "type": "comfyui",
+            "url": "http://127.0.0.1:8188"
+        }
+    ]
+}

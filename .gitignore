@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build and Distribution
+build/
+dist/
+*.spec
+AutoImageFlow.spec
+
+# Virtual Environments
+venv/
+env/
+.env
+.venv
+
+# Logs and testing
+*.log
+out.txt
+test_downloads/
+.pytest_cache/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Downloaded Images
+# Make sure we don't accidentally commit generated images if stored locally
+*.png
+*.jpg
+*.jpeg
+!screenshots/*.png
+!assets/*.ico

@@ -1,0 +1,12 @@
+{
+    "active_provider": "Built-in Provider",
+    "comfyui": {
+        "server_url": "http://127.0.0.1:8188",
+        "workflow_path": ""
+    },
+    "custom_api": {
+        "api_url": "https://api.openai.com/v1/images/generations",
+        "api_key": "",
+        "model_name": "dall-e-3"
+    }
+}
