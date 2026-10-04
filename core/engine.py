@@ -4,6 +4,9 @@ from queue import Queue
 from core.web_automation import WebAutomationRunner
 from core.comfy_client import ComfyUIClient
 from core.custom_api_client import CustomAPIClient
+from core.horde_client import HordeClient
+from core.video_providers.generic_video_client import GenericVideoClient
+from core.stock_providers.stock_runner import StockMediaRunner
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -83,6 +86,12 @@ class AutomationEngine:
                 runner = ComfyUIClient(self.current_generator_config, self.downloads_path)
             elif gen_type == "custom_api":
                 runner = CustomAPIClient(self.current_generator_config, self.downloads_path)
+            elif gen_type == "ai_horde":
+                runner = HordeClient(self.current_generator_config, self.downloads_path)
+            elif gen_type in ("video", "video_provider", "generic_video"):
+                runner = GenericVideoClient(self.current_generator_config, self.downloads_path)
+            elif gen_type in ("stock", "stock_media", "stock_provider"):
+                runner = StockMediaRunner(self.current_generator_config, self.downloads_path)
         
         try:
             if runner and hasattr(runner, 'startup'):

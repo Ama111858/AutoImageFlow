@@ -8,5 +8,23 @@
         "api_url": "https://api.openai.com/v1/images/generations",
         "api_key": "",
         "model_name": "dall-e-3"
-    }
+    },
+    "video_provider": {
+        "api_url": "https://api.openai.com/v1/videos/generations",
+        "api_key": "",
+        "model_name": "sora",
+        "aspect_ratio": "16:9",
+        "duration": "5s"
+    },
+    "stock_providers": {
+        "pexels_api_key": "",
+        "pixabay_api_key": "53945951-9dffb71c4e984c4d445f162b5"
+    },
+    "default_aspect_ratio": "16:9",
+    "download_manager": {
+        "folder": "C:\\Users\\Amarenndra\\OneDrive\\Videos\\DIGITAL DISCOVER\\assets\\images",
+        "auto_name": true,
+        "auto_download": true
+    },
+    "active_mode": "AI Video Generation"
 }

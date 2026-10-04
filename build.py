@@ -91,12 +91,13 @@ def build():
     
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--noconsole",
         "--name", "AutoImageFlow",
         "--icon", icon_path,
         "--version-file", version_file,
         "--add-data", f"config{os.pathsep}config",
         "--add-data", f"{ctk_path}{os.pathsep}customtkinter",
+        "--add-data", f"C:\\Users\\Amarenndra\\AppData\\Local\\ms-playwright\\chromium-1223{os.pathsep}playwright/driver/package/.local-browsers/chromium-1223",
+        "--add-data", f"C:\\Users\\Amarenndra\\AppData\\Local\\ms-playwright\\ffmpeg-1011{os.pathsep}playwright/driver/package/.local-browsers/ffmpeg-1011",
         "--collect-all", "playwright",
         "--noconfirm",
         "main.py"

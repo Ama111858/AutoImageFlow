@@ -1,6 +1,11 @@
 import sys
 import os
 
+# --- ADDED GUARD ---
+import python_guard
+python_guard.run_guard()
+# -------------------
+
 # Add the project root to sys.path so 'core', 'ui', 'utils' are importable
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

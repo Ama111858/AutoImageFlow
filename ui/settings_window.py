@@ -36,7 +36,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.provider_dropdown = ctk.CTkOptionMenu(
             top_frame, 
             variable=self.provider_var,
-            values=["Built-in Provider", "ComfyUI", "Custom API"],
+            values=["Built-in Provider", "ComfyUI", "Custom API", "AI Video Provider", "Stock Media (Pexels/Pixabay)"],
             command=self._on_provider_change
         )
         self.provider_dropdown.pack(side="left", fill="x", expand=True)
@@ -93,6 +93,54 @@ class SettingsWindow(ctk.CTkToplevel):
         
         ctk.CTkButton(self.customapi_frame, text="Test Connection", command=self._test_customapi).grid(row=4, column=0, columnspan=2, pady=10)
 
+        # AI Video Provider Frame
+        self.videoprovider_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.videoprovider_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(self.videoprovider_frame, text="Video API URL:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="e")
+        self.video_url_entry = ctk.CTkEntry(self.videoprovider_frame, placeholder_text="https://api.openai.com/v1/videos/generations")
+        self.video_url_entry.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+        add_context_menu(self.video_url_entry)
+        
+        ctk.CTkLabel(self.videoprovider_frame, text="Video API Key:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        self.video_key_entry = ctk.CTkEntry(self.videoprovider_frame, show="*")
+        self.video_key_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        add_context_menu(self.video_key_entry)
+        
+        ctk.CTkLabel(self.videoprovider_frame, text="Video Model:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        self.video_model_entry = ctk.CTkEntry(self.videoprovider_frame, placeholder_text="sora or runway-gen3 or luma-ray")
+        self.video_model_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        add_context_menu(self.video_model_entry)
+        
+        self.video_status = ctk.CTkLabel(self.videoprovider_frame, text="", text_color="gray")
+        self.video_status.grid(row=3, column=0, columnspan=2, pady=5)
+        
+        ctk.CTkButton(self.videoprovider_frame, text="Test Video API Connection", command=self._test_video_api).grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Free Stock Media (Pexels / Pixabay) Frame
+        self.stockmedia_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.stockmedia_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(self.stockmedia_frame, text="Pexels API Key:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="e")
+        self.pexels_key_entry = ctk.CTkEntry(self.stockmedia_frame, show="*", placeholder_text="Enter Pexels API Key")
+        self.pexels_key_entry.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+        add_context_menu(self.pexels_key_entry)
+        
+        self.pexels_status = ctk.CTkLabel(self.stockmedia_frame, text="", text_color="gray")
+        self.pexels_status.grid(row=1, column=1, padx=10, pady=2, sticky="w")
+        
+        ctk.CTkButton(self.stockmedia_frame, text="Test Pexels Key", width=120, command=self._test_pexels).grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        ctk.CTkLabel(self.stockmedia_frame, text="Pixabay API Key:").grid(row=3, column=0, padx=10, pady=(15, 10), sticky="e")
+        self.pixabay_key_entry = ctk.CTkEntry(self.stockmedia_frame, show="*", placeholder_text="Enter Pixabay API Key")
+        self.pixabay_key_entry.grid(row=3, column=1, padx=10, pady=(15, 10), sticky="ew")
+        add_context_menu(self.pixabay_key_entry)
+        
+        self.pixabay_status = ctk.CTkLabel(self.stockmedia_frame, text="", text_color="gray")
+        self.pixabay_status.grid(row=4, column=1, padx=10, pady=2, sticky="w")
+        
+        ctk.CTkButton(self.stockmedia_frame, text="Test Pixabay Key", width=120, command=self._test_pixabay).grid(row=5, column=1, padx=10, pady=5, sticky="w")
+
         # Quick Provider Test Frame
         self.quick_test_frame = ctk.CTkFrame(self, corner_radius=10)
         self.quick_test_frame.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nsew")
@@ -143,6 +191,15 @@ class SettingsWindow(ctk.CTkToplevel):
         self.api_url_entry.insert(0, custom_conf.get("api_url", ""))
         self.api_key_entry.insert(0, custom_conf.get("api_key", ""))
         self.api_model_entry.insert(0, custom_conf.get("model_name", ""))
+
+        video_conf = self.settings.get("video_provider", {})
+        self.video_url_entry.insert(0, video_conf.get("api_url", ""))
+        self.video_key_entry.insert(0, video_conf.get("api_key", ""))
+        self.video_model_entry.insert(0, video_conf.get("model_name", ""))
+
+        stock_conf = self.settings.get("stock_providers", {})
+        self.pexels_key_entry.insert(0, stock_conf.get("pexels_api_key", ""))
+        self.pixabay_key_entry.insert(0, stock_conf.get("pixabay_api_key", ""))
         
         self._on_provider_change(self.provider_var.get())
 
@@ -150,6 +207,8 @@ class SettingsWindow(ctk.CTkToplevel):
         self.builtin_frame.pack_forget()
         self.comfyui_frame.pack_forget()
         self.customapi_frame.pack_forget()
+        self.videoprovider_frame.pack_forget()
+        self.stockmedia_frame.pack_forget()
         
         if selected == "Built-in Provider":
             self.builtin_frame.pack(fill="both", expand=True)
@@ -163,6 +222,16 @@ class SettingsWindow(ctk.CTkToplevel):
             self._on_prompt_type_change("Positive Prompt")
         elif selected == "Custom API":
             self.customapi_frame.pack(fill="both", expand=True)
+            self.prompt_type_dropdown.configure(values=["Positive Prompt"])
+            self.prompt_type_var.set("Positive Prompt")
+            self._on_prompt_type_change("Positive Prompt")
+        elif selected == "AI Video Provider":
+            self.videoprovider_frame.pack(fill="both", expand=True)
+            self.prompt_type_dropdown.configure(values=["Positive Prompt"])
+            self.prompt_type_var.set("Positive Prompt")
+            self._on_prompt_type_change("Positive Prompt")
+        elif selected == "Stock Media (Pexels/Pixabay)":
+            self.stockmedia_frame.pack(fill="both", expand=True)
             self.prompt_type_dropdown.configure(values=["Positive Prompt"])
             self.prompt_type_var.set("Positive Prompt")
             self._on_prompt_type_change("Positive Prompt")
@@ -188,22 +257,110 @@ class SettingsWindow(ctk.CTkToplevel):
         if not url:
             self.customapi_status.configure(text="Invalid URL", text_color="#E74C3C")
             return
-            
         self.customapi_status.configure(text="Testing...", text_color="white")
         self.update()
         
         try:
-            # Simple GET request to see if the host is reachable
-            # It might return 401 or 405 depending on the API, which means it's reachable.
-            req = urllib.request.Request(url, method="GET")
+            url = self.api_url_entry.get().strip()
+            api_key = self.api_key_entry.get().strip()
+            
+            if "aihorde.net" in url:
+                test_url = "https://aihorde.net/api/v2/status/models"
+                headers = {
+                    "apikey": api_key,
+                    "Client-Agent": "AutoImageFlow:1.0:local",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                }
+            else:
+                test_url = url
+                headers = {"Authorization": f"Bearer {api_key}"}
+
+            req = urllib.request.Request(test_url, headers=headers)
             try:
                 urllib.request.urlopen(req, timeout=5)
                 self.customapi_status.configure(text="Host is reachable!", text_color="#2ECC71")
             except urllib.error.HTTPError as e:
-                # 401 Unauthorized, 404, 405 Method Not Allowed are acceptable for a root API URL test
-                self.customapi_status.configure(text=f"Host Reachable (HTTP {e.code})", text_color="#2ECC71")
+                if e.code in [401, 404, 405]:
+                    self.customapi_status.configure(text=f"Host Reachable (HTTP {e.code})", text_color="#2ECC71")
+                else:
+                    self.customapi_status.configure(text=f"Host Reachable but returned HTTP {e.code}", text_color="#E74C3C")
         except Exception as e:
             self.customapi_status.configure(text=f"Connection Failed: {e}", text_color="#E74C3C")
+
+    def _test_video_api(self):
+        url = self.video_url_entry.get().strip()
+        api_key = self.video_key_entry.get().strip()
+        if not url:
+            self.video_status.configure(text="Invalid Video API URL", text_color="#E74C3C")
+            return
+        self.video_status.configure(text="Testing...", text_color="white")
+        self.update()
+
+        try:
+            headers = {"User-Agent": "AutoImageFlow/1.0"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                urllib.request.urlopen(req, timeout=6)
+                self.video_status.configure(text="Video API Host Reachable!", text_color="#2ECC71")
+            except urllib.error.HTTPError as he:
+                if he.code in [400, 401, 404, 405]:
+                    self.video_status.configure(text=f"Endpoint Reachable (HTTP {he.code})", text_color="#2ECC71")
+                else:
+                    self.video_status.configure(text=f"Returned HTTP {he.code}", text_color="#E74C3C")
+        except Exception as e:
+            self.video_status.configure(text=f"Connection Failed: {e}", text_color="#E74C3C")
+
+    def _test_pexels(self):
+        key = self.pexels_key_entry.get().strip()
+        if not key:
+            self.pexels_status.configure(text="Please enter Pexels API Key", text_color="#E74C3C")
+            return
+        self.pexels_status.configure(text="Testing...", text_color="white")
+        self.update()
+
+        try:
+            req = urllib.request.Request(
+                "https://api.pexels.com/v1/curated?per_page=1",
+                headers={"Authorization": key, "User-Agent": "AutoImageFlow/1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                if resp.status == 200:
+                    self.pexels_status.configure(text="Pexels API Key is Valid! (HTTP 200)", text_color="#2ECC71")
+                else:
+                    self.pexels_status.configure(text=f"HTTP {resp.status}", text_color="#E74C3C")
+        except urllib.error.HTTPError as he:
+            if he.code in (401, 403):
+                self.pexels_status.configure(text="Invalid Pexels API Key", text_color="#E74C3C")
+            else:
+                self.pexels_status.configure(text=f"Error HTTP {he.code}", text_color="#E74C3C")
+        except Exception as e:
+            self.pexels_status.configure(text=f"Connection error: {e}", text_color="#E74C3C")
+
+    def _test_pixabay(self):
+        key = self.pixabay_key_entry.get().strip()
+        if not key:
+            self.pixabay_status.configure(text="Please enter Pixabay API Key", text_color="#E74C3C")
+            return
+        self.pixabay_status.configure(text="Testing...", text_color="white")
+        self.update()
+
+        try:
+            test_url = f"https://pixabay.com/api/?key={key}&per_page=3&safesearch=true"
+            req = urllib.request.Request(test_url, headers={"User-Agent": "AutoImageFlow/1.0"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                if resp.status == 200:
+                    self.pixabay_status.configure(text="Pixabay API Key is Valid! (HTTP 200)", text_color="#2ECC71")
+                else:
+                    self.pixabay_status.configure(text=f"HTTP {resp.status}", text_color="#E74C3C")
+        except urllib.error.HTTPError as he:
+            if he.code in (400, 401, 403):
+                self.pixabay_status.configure(text="Invalid Pixabay API Key", text_color="#E74C3C")
+            else:
+                self.pixabay_status.configure(text=f"Error HTTP {he.code}", text_color="#E74C3C")
+        except Exception as e:
+            self.pixabay_status.configure(text=f"Connection error: {e}", text_color="#E74C3C")
 
     def _save_settings(self):
         self.settings["active_provider"] = self.provider_var.get()
@@ -218,6 +375,17 @@ class SettingsWindow(ctk.CTkToplevel):
         self.settings["custom_api"]["api_url"] = self.api_url_entry.get().strip()
         self.settings["custom_api"]["api_key"] = self.api_key_entry.get().strip()
         self.settings["custom_api"]["model_name"] = self.api_model_entry.get().strip()
+
+        if "video_provider" not in self.settings:
+            self.settings["video_provider"] = {}
+        self.settings["video_provider"]["api_url"] = self.video_url_entry.get().strip()
+        self.settings["video_provider"]["api_key"] = self.video_key_entry.get().strip()
+        self.settings["video_provider"]["model_name"] = self.video_model_entry.get().strip()
+
+        if "stock_providers" not in self.settings:
+            self.settings["stock_providers"] = {}
+        self.settings["stock_providers"]["pexels_api_key"] = self.pexels_key_entry.get().strip()
+        self.settings["stock_providers"]["pixabay_api_key"] = self.pixabay_key_entry.get().strip()
         
         save_settings(self.settings)
         if self.on_save_callback:
@@ -273,6 +441,7 @@ class SettingsWindow(ctk.CTkToplevel):
         from core.web_automation import WebAutomationRunner
         from core.comfy_client import ComfyUIClient
         from core.custom_api_client import CustomAPIClient
+        from core.horde_client import HordeClient
         from utils.config_manager import load_generators
         import os
 
@@ -296,13 +465,50 @@ class SettingsWindow(ctk.CTkToplevel):
                 }
                 runner = ComfyUIClient(config, download_folder)
             elif provider == "Custom API":
+                mode = self.master.mode_var.get() if hasattr(self.master, 'mode_var') else "Free Generator"
+                api_url = self.settings.get("custom_api", {}).get("api_url", "")
+                
+                # Auto-detect AI Horde if they haven't restarted or selected the radio button
+                if mode == "AI Horde Automation" or "aihorde.net" in api_url:
+                    config = {
+                        "type": "ai_horde",
+                        "api_key": self.settings["custom_api"]["api_key"],
+                        "model_selection": self.settings["custom_api"]["model_name"]
+                    }
+                    runner = HordeClient(config, download_folder)
+                else:
+                    config = {
+                        "type": "custom_api",
+                        "api_url": self.settings["custom_api"]["api_url"],
+                        "api_key": self.settings["custom_api"]["api_key"],
+                        "model_name": self.settings["custom_api"]["model_name"]
+                    }
+                    runner = CustomAPIClient(config, download_folder)
+            elif provider == "AI Video Provider":
+                from core.video_providers.generic_video_client import GenericVideoClient
+                video_conf = self.settings.get("video_provider", {})
                 config = {
-                    "type": "custom_api",
-                    "api_url": self.settings["custom_api"]["api_url"],
-                    "api_key": self.settings["custom_api"]["api_key"],
-                    "model_name": self.settings["custom_api"]["model_name"]
+                    "type": "video_provider",
+                    "api_url": video_conf.get("api_url", ""),
+                    "api_key": video_conf.get("api_key", ""),
+                    "model_name": video_conf.get("model_name", "sora")
                 }
-                runner = CustomAPIClient(config, download_folder)
+                runner = GenericVideoClient(config, download_folder)
+            elif provider == "Stock Media (Pexels/Pixabay)":
+                from core.stock_providers.pexels_client import PexelsClient
+                from core.stock_providers.pixabay_client import PixabayClient
+                stock_conf = self.settings.get("stock_providers", {})
+                if stock_conf.get("pexels_api_key"):
+                    client = PexelsClient(stock_conf.get("pexels_api_key"), download_folder)
+                else:
+                    client = PixabayClient(stock_conf.get("pixabay_api_key"), download_folder)
+                res = client.search_and_download(prompt, count=1, progress_callback=self._test_progress_callback)
+                if res.get("success") and res.get("downloaded_files"):
+                    self._update_test_status("Stock media downloaded successfully!", "#2ECC71")
+                else:
+                    self._update_test_status(f"Download failed: {res.get('error', 'No media found')}", "#E74C3C")
+                self.after(0, lambda: self.btn_generate_test.configure(state="normal"))
+                return
 
             if runner and hasattr(runner, 'startup'):
                 runner.startup(self._test_progress_callback)

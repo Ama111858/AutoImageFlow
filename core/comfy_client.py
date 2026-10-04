@@ -6,11 +6,14 @@ import os
 import uuid
 import shutil
 import webbrowser
+import random
 from utils.logger import get_logger
 
 logger = get_logger()
 
 class ComfyUIClient:
+    _browser_opened = False
+
     def __init__(self, config, download_folder):
         self.config = config
         self.url = self.config["url"]
@@ -19,17 +22,87 @@ class ComfyUIClient:
     def startup(self, progress_callback=None):
         if progress_callback:
             progress_callback(10, "Checking ComfyUI connection...")
+
+        def open_visible_browser(url):
+            if os.environ.get("AUTOIMAGEFLOW_NO_BROWSER") == "1" or ComfyUIClient._browser_opened:
+                return
+            ComfyUIClient._browser_opened = True
+            try:
+                os.startfile(url)
+            except Exception:
+                webbrowser.open(url)
+
+        def check_port(port=8188):
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(1.0)
+                return s.connect_ex(('127.0.0.1', port)) == 0
+
+        if check_port(8188):
+            try:
+                req = urllib.request.Request(f"{self.url.rstrip('/')}/system_stats")
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    if resp.status == 200:
+                        if progress_callback:
+                            progress_callback(20, "ComfyUI Connected")
+                        if not ComfyUIClient._browser_opened and os.environ.get("AUTOIMAGEFLOW_NO_BROWSER") != "1":
+                            logger.info("Auto-opening ComfyUI in browser")
+                            open_visible_browser(self.url)
+                        return
+            except Exception:
+                pass
+
+        # If not reachable, auto-launch ComfyUI using existing bat
+        if progress_callback:
+            progress_callback(15, "Starting ComfyUI server...")
+        logger.info("ComfyUI not running, attempting auto-launch...")
+
+        base_dir = r"E:\ComfyUi\ComfyUI_windows_portable"
+        cpu_bat = os.path.join(base_dir, "run_cpu.bat")
+        gpu_bat = os.path.join(base_dir, "run_nvidia_gpu.bat")
+        bat_to_run = cpu_bat
         try:
-            req = urllib.request.Request(f"{self.url.rstrip('/')}/system_stats")
-            urllib.request.urlopen(req, timeout=5)
-            if progress_callback:
-                progress_callback(20, "ComfyUI Connected")
-            
-            logger.info("Auto-opening ComfyUI in browser")
-            webbrowser.open(self.url)
-            
-        except Exception as e:
-            raise Exception(f"Connection Failed: {e}")
+            import torch
+            if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+                if os.path.exists(gpu_bat):
+                    bat_to_run = gpu_bat
+        except Exception:
+            pass
+
+        if not os.path.exists(bat_to_run):
+            if os.path.exists(gpu_bat):
+                bat_to_run = gpu_bat
+            elif os.path.exists(cpu_bat):
+                bat_to_run = cpu_bat
+            else:
+                raise Exception(f"ComfyUI startup script not found in {base_dir}")
+
+        import subprocess
+        subprocess.Popen(f'"{bat_to_run}"', cwd=base_dir, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+
+        # Poll for readiness: wait until check_port PASS and /system_stats responds
+        start_t = time.time()
+        connected = False
+        while time.time() - start_t < 60:
+            if check_port(8188):
+                try:
+                    req = urllib.request.Request(f"{self.url.rstrip('/')}/system_stats")
+                    with urllib.request.urlopen(req, timeout=2) as resp:
+                        if resp.status == 200:
+                            connected = True
+                            break
+                except Exception:
+                    pass
+            time.sleep(2)
+
+        if not connected:
+            raise Exception("Timed out waiting for ComfyUI to start")
+
+        logger.info("Ready check PASS: opening ComfyUI in browser")
+        open_visible_browser(self.url)
+
+        if progress_callback:
+            progress_callback(20, "ComfyUI Connected")
 
     def get_history(self, prompt_id):
         req = urllib.request.Request(f"{self.url}/history/{prompt_id}")
@@ -80,16 +153,56 @@ class ComfyUIClient:
         with open(workflow_path, "r", encoding="utf-8") as f:
             workflow = json.load(f)
 
-        selected_model = self.config.get("model_selection", "DreamShaper")
-        target_ckpt = "dreamshaper_8.safetensors"
+        selected_model = self.config.get("model_selection", "Realistic Vision")
+        
+        # Map common names to checkpoint files, or use the provided name directly if it looks like a filename
+        target_ckpt = selected_model
         if selected_model == "Realistic Vision":
             target_ckpt = "realisticV51_realisticv15BETA.safetensors"
-            
+        elif selected_model == "DreamShaper":
+            target_ckpt = "dreamshaper_8.safetensors"
+        elif selected_model.lower() == "sdxl":
+            target_ckpt = "sd_xl_base_1.0.safetensors"
+        elif selected_model.lower() == "sd15":
+            target_ckpt = "v1-5-pruned-emaonly.safetensors"
+        elif not selected_model.endswith(".safetensors") and not selected_model.endswith(".ckpt"):
+            target_ckpt = f"{selected_model}.safetensors"
+
+        # Query ComfyUI for actual installed checkpoints to ensure validation always succeeds
+        available_ckpts = []
+        try:
+            req_info = urllib.request.Request(f"{self.url}/object_info/CheckpointLoaderSimple")
+            with urllib.request.urlopen(req_info, timeout=5) as resp_info:
+                if resp_info.status == 200:
+                    info_data = json.loads(resp_info.read().decode('utf-8'))
+                    available_ckpts = info_data.get("CheckpointLoaderSimple", {}).get("input", {}).get("required", {}).get("ckpt_name", [[]])[0]
+        except Exception as e:
+            logger.warning(f"Could not query ComfyUI checkpoints from {self.url}: {e}")
+
+        resolved_ckpt = target_ckpt
+        if available_ckpts:
+            if target_ckpt in available_ckpts:
+                resolved_ckpt = target_ckpt
+            else:
+                # Try case-insensitive or substring matching
+                matched = None
+                for c in available_ckpts:
+                    if target_ckpt.lower() in c.lower() or c.lower() in target_ckpt.lower():
+                        matched = c
+                        break
+                # Fallback: pick the first genuine image checkpoint (skip motion modules and VAE files)
+                if not matched:
+                    valid_ckpts = [c for c in available_ckpts if not c.startswith("mm_") and "vae" not in c.lower()]
+                    matched = valid_ckpts[0] if valid_ckpts else available_ckpts[0]
+                
+                logger.info(f"Checkpoint '{target_ckpt}' not in ComfyUI. Auto-resolved to installed checkpoint '{matched}'")
+                resolved_ckpt = matched
+
         for node_id, node_info in workflow.items():
             if node_info.get("class_type") == "CheckpointLoaderSimple":
                 if "inputs" in node_info:
-                    node_info["inputs"]["ckpt_name"] = target_ckpt
-                    logger.info(f"Set Checkpoint to {target_ckpt}")
+                    node_info["inputs"]["ckpt_name"] = resolved_ckpt
+                    logger.info(f"Set Checkpoint to {resolved_ckpt}")
                     break
 
         prompt_injected = False
@@ -111,6 +224,29 @@ class ComfyUIClient:
         if not prompt_injected:
             logger.warning("Could not find a valid CLIPTextEncode node for the prompt.")
             
+        # Initial image generation resolution = 512 x 512 (Short/Long resolution not implemented yet as per requirement)
+        target_w, target_h = 512, 512
+
+        latent_injected = False
+        for node_id, node_info in workflow.items():
+            if node_info.get("class_type") == "EmptyLatentImage" and "inputs" in node_info:
+                node_info["inputs"]["width"] = target_w
+                node_info["inputs"]["height"] = target_h
+                latent_injected = True
+                logger.info(f"Set EmptyLatentImage initial resolution to {target_w}x{target_h} at Node {node_id}")
+                break
+
+        if not latent_injected and "5" in workflow and "inputs" in workflow["5"]:
+            workflow["5"]["inputs"]["width"] = target_w
+            workflow["5"]["inputs"]["height"] = target_h
+            logger.info(f"Set EmptyLatentImage initial resolution to {target_w}x{target_h} at fallback Node 5")
+
+        # Randomize seed for KSampler to guarantee a fresh generation for each prompt
+        for node_id, node_info in workflow.items():
+            if node_info.get("class_type") in ("KSampler", "KSamplerAdvanced") and "inputs" in node_info:
+                node_info["inputs"]["seed"] = random.randint(1, 10**14)
+                break
+
         logger.info("Workflow Updated")
         
         p = {"prompt": workflow}

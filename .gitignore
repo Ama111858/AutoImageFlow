@@ -20,7 +20,9 @@ env/
 *.log
 out.txt
 test_downloads/
+test_outputs/
 .pytest_cache/
+0*/
 
 # IDEs and Editors
 .vscode/

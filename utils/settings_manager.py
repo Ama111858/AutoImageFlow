@@ -13,6 +13,17 @@ DEFAULT_SETTINGS = {
         "api_url": "https://api.openai.com/v1/images/generations",
         "api_key": "",
         "model_name": "dall-e-3"
+    },
+    "video_provider": {
+        "api_url": "https://api.openai.com/v1/videos/generations",
+        "api_key": "",
+        "model_name": "sora",
+        "aspect_ratio": "16:9",
+        "duration": "5s"
+    },
+    "stock_providers": {
+        "pexels_api_key": "",
+        "pixabay_api_key": ""
     }
 }
 

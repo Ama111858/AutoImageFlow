@@ -1,7 +1,8 @@
 {
   "3": {
+    "class_type": "KSampler",
     "inputs": {
-      "seed": 156680208700286,
+      "seed": 82100285314555,
       "steps": 20,
       "cfg": 8,
       "sampler_name": "euler",
@@ -24,32 +25,32 @@
         0
       ]
     },
-    "class_type": "KSampler",
     "_meta": {
       "title": "KSampler"
     }
   },
   "4": {
-    "inputs": {
-      "ckpt_name": "dreamshaper_8.safetensors"
-    },
     "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "realisticV51_realisticv15BETA.safetensors"
+    },
     "_meta": {
       "title": "Load Checkpoint"
     }
   },
   "5": {
+    "class_type": "EmptyLatentImage",
     "inputs": {
       "width": 512,
       "height": 512,
       "batch_size": 1
     },
-    "class_type": "EmptyLatentImage",
     "_meta": {
       "title": "Empty Latent Image"
     }
   },
   "6": {
+    "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "beautiful scenery nature glass bottle landscape, purple galaxy bottle",
       "clip": [
@@ -57,25 +58,25 @@
         1
       ]
     },
-    "class_type": "CLIPTextEncode",
     "_meta": {
       "title": "CLIP Text Encode (Prompt)"
     }
   },
   "7": {
+    "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "text, watermark",
+      "text": "Overly sexualized  overly suggestive poses,  highly provocatUnnatural positions or body proportionive) ",
       "clip": [
         "4",
         1
       ]
     },
-    "class_type": "CLIPTextEncode",
     "_meta": {
       "title": "CLIP Text Encode (Prompt)"
     }
   },
   "8": {
+    "class_type": "VAEDecode",
     "inputs": {
       "samples": [
         "3",
@@ -86,20 +87,44 @@
         2
       ]
     },
-    "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
     }
   },
-  "9": {
+  "12": {
+    "class_type": "UpscaleModelLoader",
     "inputs": {
-      "filename_prefix": "ComfyUI",
-      "images": [
+      "model_name": "4x-UltraSharp (1).pth"
+    },
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "18": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": [
+        "12",
+        0
+      ],
+      "image": [
         "8",
         0
       ]
     },
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
+  },
+  "20": {
     "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "18",
+        0
+      ]
+    },
     "_meta": {
       "title": "Save Image"
     }
